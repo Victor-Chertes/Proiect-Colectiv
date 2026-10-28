@@ -1,0 +1,148 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+// SQLite nu suportă enum nativ; le simulăm cu String și validare în aplicație
+
+// Role: "USER" | "ADMIN"
+// WorkoutType: "PERSONAL" | "PUBLIC"
+// SessionStatus: "IN_PROGRESS" | "COMPLETED" | "ABANDONED"
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("USER") // "USER" | "ADMIN"
+  createdAt DateTime @default(now())
+
+  workouts       Workout[]
+  sessions       WorkoutSession[]
+  progressSheets ProgressSheet[]
+  photoFolders   PhotoFolder[]
+  photos         Photo[]
+}
+
+model Exercise {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  muscleGroup String @default("General")
+
+  workoutExercises WorkoutExercise[]
+  sessionSets      SessionSet[]
+}
+
+model Workout {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @default("")
+  type        String   @default("PERSONAL") // "PERSONAL" | "PUBLIC"
+  restTime    Int      @default(60) // secunde pauza intre serii
+  userId      Int
+  createdAt   DateTime @default(now())
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises WorkoutExercise[]
+  sessions  WorkoutSession[]
+}
+
+model WorkoutExercise {
+  id         Int @id @default(autoincrement())
+  workoutId  Int
+  exerciseId Int
+  sets       Int // numarul de serii
+  reps       Int // repetari per serie (target)
+  order      Int @default(0)
+
+  workout  Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+model WorkoutSession {
+  id         Int       @id @default(autoincrement())
+  workoutId  Int
+  userId     Int
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  status     String    @default("IN_PROGRESS") // "IN_PROGRESS" | "COMPLETED" | "ABANDONED"
+
+  workout Workout      @relation(fields: [workoutId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
+  sets    SessionSet[]
+}
+
+model SessionSet {
+  id          Int       @id @default(autoincrement())
+  sessionId   Int
+  exerciseId  Int
+  setNumber   Int
+  targetReps  Int
+  actualReps  Int?
+  completedAt DateTime?
+
+  session  WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise Exercise       @relation(fields: [exerciseId], references: [id])
+}
+
+model ProgressSheet {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @default("")
+  userId      Int
+  createdAt   DateTime @default(now())
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries ProgressEntry[]
+}
+
+model ProgressEntry {
+  id              Int      @id @default(autoincrement())
+  progressSheetId Int
+  value           Float
+  notes           String   @default("")
+  date            DateTime @default(now())
+
+  progressSheet ProgressSheet @relation(fields: [progressSheetId], references: [id], onDelete: Cascade)
+}
+
+model PhotoFolder {
+  id        Int      @id @default(autoincrement())
+  name      String
+  userId    Int
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos Photo[]
+}
+
+model Photo {
+  id         Int      @id @default(autoincrement())
+  filename   String
+  url        String
+  folderId   Int
+  userId     Int
+  uploadedAt DateTime @default(now())
+
+  folder PhotoFolder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id])
+}
+
+// Token blacklist – stocheaza JWT-urile invalidate la logout
+// pana la expirarea lor naturala
+model InvalidatedToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique  // JWT complet (sau jti daca se doreste)
+  expiresAt DateTime           // data expirarii din payload JWT
+  createdAt DateTime @default(now())
+}
