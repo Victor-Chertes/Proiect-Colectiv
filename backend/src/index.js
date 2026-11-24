@@ -9,6 +9,7 @@ const exerciseRoutes = require('./routes/exercises');
 const sessionRoutes = require('./routes/sessions');
 const progressRoutes = require('./routes/progress');
 const photoRoutes = require('./routes/photos');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/exercises', exerciseRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/photos', photoRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'FitFlow API running' });

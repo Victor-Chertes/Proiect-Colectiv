@@ -1,5 +1,6 @@
 import BottomNav from './BottomNav';
 import NavbarMenu from './NavbarMenu';
+import ChatWidget from '../chat/ChatWidget';
 
 const AppLayout = ({ children }) => {
   return (
@@ -18,6 +19,7 @@ const AppLayout = ({ children }) => {
         {children}
       </main>
       <BottomNav />
+      <ChatWidget />
     </div>
   );
 };
